@@ -1,0 +1,10 @@
+c:\Users\ruben\IdeaProjects\HM310P_rs\example\target\debug\deps\futures_channel-106c6caab3d346cd.rmeta: C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\lib.rs C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\lock.rs C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\mpsc\mod.rs C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\mpsc\queue.rs C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\mpsc\sink_impl.rs C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\oneshot.rs
+
+c:\Users\ruben\IdeaProjects\HM310P_rs\example\target\debug\deps\futures_channel-106c6caab3d346cd.d: C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\lib.rs C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\lock.rs C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\mpsc\mod.rs C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\mpsc\queue.rs C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\mpsc\sink_impl.rs C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\oneshot.rs
+
+C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\lib.rs:
+C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\lock.rs:
+C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\mpsc\mod.rs:
+C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\mpsc\queue.rs:
+C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\mpsc\sink_impl.rs:
+C:\Users\ruben\.cargo\registry\src\github.com-1ecc6299db9ec823\futures-channel-0.3.17\src\oneshot.rs:
