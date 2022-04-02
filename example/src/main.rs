@@ -1,107 +1,101 @@
+mod args;
+use crate::ParsingErr::PortErr;
+use clap::crate_version;
+use clap::Parser;
+use psu::psu::Command;
+use psu::psu::PSU;
+use psu::sku::hm310p::HM310P;
+use psu::sku::Feature;
+use tracing::Level;
+use tracing::debug;
+use tracing::error;
+use tracing::info;
+use tracing_subscriber::FmtSubscriber;
+use std::fmt;
 use std::thread::sleep;
 use std::time::Duration;
-use clap::{Parser,crate_version};
-use psu::sku::hm310p::HM310P;
-use tokio_serial::{DataBits, ErrorKind, StopBits};
-use core::{array, panic};
-use psu::sku::{self, Feature, Command};
-use psu::psu::{PSU, Controllable};
-use tokio_serial::SerialStream;
 use tokio_modbus::prelude::*;
+use tokio_serial::{DataBits, ErrorKind, SerialStream, StopBits};
+use snafu::prelude::*;
+use args::{get_opts, ParsingErr, Opts};
 
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 #[clap(version = crate_version!(), author = "U_Bren <ruben@caramail.com>")]
-struct RawOpts {
+pub struct RawOpts {
     /// Sets a custom config file. Could have been an Option<T> with no default too
     #[clap(short, long)]
     port: String,
-    #[clap(short, long)]
+    #[clap(short='i', long, default_value="1")]
+    slave_id: u8,
+    #[clap(short, long, default_value="autodetect")]
     sku: String,
     #[clap(short, long)]
-    hex: String,
+    command: String,
+    #[clap(short, long, default_value="read")]
+    mode: String,
+    #[clap(short='V',long)]
+    value: u16,
     #[clap(short, long, parse(from_occurrences))]
     verbose: u32,
 }
 
-struct Opts {
-    port: SerialStream,
-    sku: SKU,
-    command: Command 
-}
 
 
 #[tokio::main(flavor = "current_thread")]
-pub async fn main() {
-    let rawOpts: RawOpts = RawOpts::parse();
-    println!("Port: {}, command {}", rawOpts.port, rawOpts.hex);
+pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    init_logging();
 
-}
+    let raw_opts: RawOpts = RawOpts::parse();
+    let mut opts = parse_opts(&raw_opts).await;
 
-fn parse_args(rawOpts: RawOpts) -> Opts {
-    let port: Option<SerialStream> = match get_serial_port(rawOpts.port.as_str()){
-        Ok(serial) => Some(serial),
+    debug!("Available features: N/A because printing a vec is a nightmare");
 
-        Err(e) => {
-            use ErrorKind::*;
-            match e.kind {
-                NoDevice => println!("Error: Can't find port \"{}\".", rawOpts.port),
-                InvalidInput => println!("Error: Invalid input \"{}\".", rawOpts.port),
-                Unknown => println!("Error: Unknown error for port {}.", rawOpts.port),
-                Io(io) => match io {
-                    std::io::ErrorKind::PermissionDenied => println!("Error: Permission denied for port \"{}\".", rawOpts.port),
-                    //std::io::ErrorKind::ResourceBusy => println!("Error: Resource \"{}\" Busy.", opts.port),
-                    _ => println!("Error: Can't use open port \"{}\".", rawOpts.port),
-                },
-            }
-            None
-        }
+    let command = Command {
+        mode: opts.command.mode,
+        feature: opts.psu.get_feature("ON/OFF").unwrap(),
+        parameters: raw_opts.value,
     };
 
-    let sku: SKU = parse_sku(rawOpts.sku);
-
-    let command: Command = parse_command(rawOpts.hex);
-
-    Opts{
-        command,
-        sku,
-        port,
-    }
-}
-
-fn parse_sku(sku: String) -> Controllable {
-    match sku {
-        "hm310p" => HM310P
-        _ => panic!("Can't find PSU's SKU")
-    }
-}
-
-async fn yolo() -> Result<(), Box<dyn std::error::Error>> {
-    let port = get_serial_port("COM9")?;
-    let slave = Slave(0x01);
-
-    let context = rtu::connect_slave(port, slave).await?;
-    let mut sku = HM310P::new(context);
-    let features: Vec<Feature> = sku.psu.features.clone();
-
+    info!("Attempting to send command...");
+    let vec = opts.psu.write(&command).await;
+    info!("Result: todo!");
     
-    let on_off = (features.into_iter().filter(|x| x.name == "ON/OFF").next()).unwrap();
-
-    let mut flip = false;
-    loop {
-        println!("{:?}", flip);
-        sku.psu.send(&on_off, u16::from(flip));
-        println!("sent");
-        flip = !flip;
-        sleep(Duration::from_secs(1));
-    }
+    Ok(())
 }
 
-fn get_serial_port(tty_path: &str) -> tokio_serial::Result<SerialStream> {
+fn init_logging() {
+    // Install color backtrace as a panic handler
+    color_backtrace::install();
 
-    let builder = tokio_serial::new(tty_path, 9600)
-        .data_bits(DataBits::Eight)
-        .stop_bits(StopBits::One);
+    // Send subscribed information to stdout
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(Level::TRACE)
+        .finish();
 
-    let serial = SerialStream::open(&builder)?;
-    Ok(serial)
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("setting default subscriber failed");
+}
+
+/// Returns parsed Opts
+/// 
+/// # Arguments
+/// * `rawOpts` - a RawOpts instance usually parsed using Clap from CLI args.
+/// 
+/// # Exits
+/// With error code ``1`` when creating a Opts instance from passed ``rawOpts`` fails.
+async fn parse_opts(rawOpts: &RawOpts) -> Opts {
+    let opts = match get_opts(&rawOpts).await {
+        Err(e) => {
+            error!("{}", e);
+            std::process::exit(1);
+        },
+        Ok(x) => x
+    };
+
+    debug!(
+        "Parsed opts: {:#?}",    /*, command {}"*/
+        &opts, /*opts.command*/
+    );
+
+    opts
 }

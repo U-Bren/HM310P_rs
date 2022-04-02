@@ -1,0 +1,10 @@
+#!/usr/bin/env just --justfile
+
+set windows-powershell := true
+export RUST_BACKTRACE := "1"
+
+test:
+  cargo test
+
+run +args:
+  cargo run -- {{args}}
