@@ -47,6 +47,12 @@ impl Feature {
             quantity
         } 
     }
+    pub fn from_str<'a>(features: &'a Vec<Feature>, feature: &str) -> Option<&'a Feature> {
+        features
+            .iter()
+            .filter(|x| x.name.eq_ignore_ascii_case(&feature))
+            .next()
+    }
 }
 
 impl fmt::Display for Feature {

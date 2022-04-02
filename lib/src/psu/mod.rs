@@ -2,7 +2,7 @@ use crate::sku::{Feature, RWCapabilities};
 use futures::executor::block_on;
 use tokio_modbus::client::{Context, Reader};
 use tokio_modbus::prelude::Writer;
-use tracing::error;
+use tracing::{error, info};
 
 //FIXME: Validate mode against feature's is_rw
 #[derive(Debug, Clone, Copy)]
@@ -20,15 +20,18 @@ pub struct PSU {
 
 impl PSU {
     pub async fn read(&mut self, command: &Command) -> Result<Vec<u16>, std::io::Error> {
-        error!("Attempting a read with command {:#?}.", command);
-            self.context.read_holding_registers(command.feature.address + 1, command.feature.quantity).await //+1 because of protocol
+        info!("Attempting a read with command {:#?}.", command);
+            self.context.read_holding_registers(
+                command.feature.address,
+                 command.feature.quantity, 
+                ).await //+1 because of protocol
     }
 
     pub async fn write(&mut self, command: &Command) -> std::result::Result<(), std::io::Error> {
-        error!("Attempting a write with command {:#?}.", command);
+        info!("Attempting a write with command {:#?}.", command);
         //TODO: Support Vec<u16>
         self.context.write_single_register(
-            command.feature.address + 1, // +1 because of protocol
+            command.feature.address,
             command.parameters,
         ).await
     }
