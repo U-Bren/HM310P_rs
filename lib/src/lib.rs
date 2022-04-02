@@ -1,2 +1,2 @@
-pub mod sku;
 pub mod psu;
+pub mod sku;

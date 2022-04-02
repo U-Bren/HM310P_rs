@@ -1,156 +1,147 @@
-use crate::{sku::Feature, psu::{ControllablePSU, self, Command}};
+use crate::psu::PSU;
+use crate::{
+    psu::Command,
+    sku::Feature,
+};
+use flagset::{flags, FlagSet};
 use tokio_modbus::client::Context;
 
 pub struct HM310P {
-    context: Context,
-    features: Vec<Feature>
-}
-
-impl ControllablePSU for HM310P {
-    fn new(context: Context) -> Self {
-        HM310P {
-                context,
-                features: Vec::from([
-                    Feature {
-                        address: 0x0000,
-                        name: "ON/OFF",
-                        is_rw: true,
-                        quantity: 0,
-                    },
-                    Feature {
-                        address: 0x0001,
-                        //Protection status
-                        name: "OP.S",
-                        is_rw: false,
-                        quantity: 0,
-                    },
-                    Feature {
-                        address: 0x0002,
-                        name: "Specification and type",
-                        is_rw: false,
-                        quantity: 0,
-                    },
-                    Feature {
-                        address: 0x0003,
-                        name: "Tail classification",
-                        is_rw: false,
-                        quantity: 0,
-                    },
-                    Feature {
-                        address: 0x0004,
-                        name: "Decimal point digit capacity",
-                        is_rw: false,
-                        quantity: 0,
-                    },
-                    Feature {
-                        address: 0x0005,
-                        name: "U",
-                        is_rw: false,
-                        quantity: 2,
-                    },
-                    Feature {
-                        address: 0x0006,
-                        name: "I",
-                        is_rw: false,
-                        quantity: 2,
-                    },
-                    Feature {
-                        address: 0x0007,
-                        name: "P",
-                        is_rw: false,
-                        quantity: 3,
-                    },
-                    Feature {
-                        address: 0x0008,
-                        name: "SetU",
-                        is_rw: true,
-                        quantity: 2,
-                    },
-                    Feature {
-                        address: 0x0009,
-                        name: "SetI",
-                        is_rw: true,
-                        quantity: 2,
-                    },
-                    Feature {
-                        address: 0x000A,
-                        name: "OVP",
-                        is_rw: true,
-                        quantity: 2,
-                    },
-                    Feature {
-                        address: 0x000B,
-                        name: "OCP",
-                        is_rw: true,
-                        quantity: 3,
-                    },
-                    Feature {
-                        address: 0x000C,
-                        name: "OPP",
-                        is_rw: true,
-                        quantity: 2,
-                    },
-                    Feature {
-                        address: 0x000D,
-                        name: "RS-Adder",
-                        is_rw: true,
-                        quantity: 0,
-                    },
-                ])
-        }
-    }
-
-    fn read(&mut self, command: &Command) -> Result<Vec<u16>, std::io::Error> {
-        psu::read(&mut self.context, command)
-    }
-
-    fn write(&mut self, command: &crate::psu::Command) -> std::result::Result<(), std::io::Error> {
-        psu::write(&mut self.context, command)
-    }
-
-    fn features(&self) -> &Vec<Feature> {
-        &self.features
-    }
-
-
+    pub psu: PSU,
 }
 
 // START OF MODEL-SPECIFIC CODE
-use bitflags::bitflags;
+
+use super::{RWCapabilities};
 
 pub struct ProtectionStatus {
-    flags: ProtectionStatusFlags,
-    U_I_W_decimals: u8 // Number of decimals in the returned values for Voltage, Current and Power. 4 bits increments
+    flags: FlagSet<ProtectionStatusFlags>,
+    u_i_w_decimals: u8, // Number of decimals in the returned values for Voltage, Current and Power. 4 bits increments
 }
 
-bitflags! {
-    struct ProtectionStatusFlags: u8 {
-        const OVP =  0b0000001; // Over voltage protection
-        const OCP =  0b0000010; // Over current
-        const OPP =  0b0000100; // Over power protection
-        const OTP =  0b0001000; // Over temperature protection
-        const SCP =  0b0010000; // Short circuit protection
+flags! {
+    pub enum ProtectionStatusFlags: u8 {
+        OVP = 0b0000001, // Over voltage protection
+        OCP = 0b0000010, // Over current
+        OPP = 0b0000100, // Over power protection
+        OTP = 0b0001000, // Over temperature protection
+        SCP = 0b0010000, // Short circuit protection
     }
 }
 
-pub fn parse_ProtectionStatus(response: u16) -> ProtectionStatus {
+pub fn parse_protection_status(response: u16) -> ProtectionStatus {
     let flags = response as u8;
-    let U_I_W_decimals = (response >> 8) as u8;
-    
+    let u_i_w_decimals = (response >> 8) as u8;
+
     ProtectionStatus {
-        flags: ProtectionStatusFlags::from_bits(flags).unwrap(),
-        U_I_W_decimals
+        flags: FlagSet::<ProtectionStatusFlags>::new(flags).unwrap(),
+        u_i_w_decimals,
     }
 }
 
 impl HM310P {
-    pub fn get_protection_status(&mut self) -> ProtectionStatus {
+    pub fn new(context: Context) -> HM310P {
+        HM310P {
+            psu: PSU {
+                context,
+                features: Vec::from([
+                    Feature::new(
+                        0x0000,
+                        "ON/OFF",
+                         RWCapabilities::Write,
+                        0,
+                    ),
+                    Feature::new (
+                        0x0001,
+                        //Protection status
+                         "OP.S",
+                        RWCapabilities::Read,
+                        0,
+                    ),
+                    Feature::new (
+                        0x0002,
+                        "Specification and type",
+                        RWCapabilities::Read,
+                        0,
+                    ),
+                    Feature::new (
+                        0x0003,
+                        "Tail classification",
+                        RWCapabilities::Read,
+                        0,
+                    ),
+                    Feature::new (
+                        0x0004,
+                        "Decimal point digit capacity",
+                        RWCapabilities::Read,
+                        0,
+                    ),
+                    Feature::new (
+                        0x0005,
+                        "U",
+                        RWCapabilities::Read,
+                        2,
+                    ),
+                    Feature::new (
+                        0x0006,
+                        "I",
+                        RWCapabilities::Read,
+                        2,
+                    ),
+                    Feature::new (
+                        0x0007,
+                        "P",
+                        RWCapabilities::Read,
+                        3,
+                    ),
+                    Feature::new (
+                        0x0008,
+                        "SetU",
+                        RWCapabilities::Write,
+                        2,
+                    ),
+                    Feature::new (
+                        0x0009,
+                        "SetI",
+                        RWCapabilities::Write,
+                        2,
+                    ),
+                    Feature::new (
+                        0x000A,
+                        "OVP",
+                        RWCapabilities::Read | RWCapabilities::Write,
+                        2,
+                    ),
+                    Feature::new (
+                        0x000B,
+                        "OCP",
+                        RWCapabilities::Read | RWCapabilities::Write,
+                        3,
+                    ),
+                    Feature::new (
+                        0x000C,
+                        "OPP",
+                        RWCapabilities::Read | RWCapabilities::Write,
+                        2,
+                    ),
+                    Feature::new (
+                        0x000D,
+                        "RS-Adder",
+                        RWCapabilities::Read,
+                        0,
+                    ),
+                ]),
+            },
+        }
+    }
+    pub async fn get_protection_status(&mut self) -> ProtectionStatus {
         let command: Command = Command {
-            feature: self.get_feature("OP.S").unwrap(),
+            mode: RWCapabilities::Read,
+            feature: self.psu.get_feature("OP.S").unwrap(),
             parameters: 0,
         };
-        let response = *self.read(&command).unwrap().get(0).unwrap();
-        parse_ProtectionStatus(response)
+        let response = *self.psu.read(&command).await.unwrap().get(0).unwrap();
+        parse_protection_status(response)
     }
 }
 
@@ -160,10 +151,10 @@ mod tests {
     #[test]
     fn protection_status_parsing_is_correct_against_example() {
         let example: u16 = 0b0000000000110101;
-        let protection_status = parse_ProtectionStatus(example);
+        let protection_status = parse_protection_status(example);
         let flags = protection_status.flags;
         flags.contains(ProtectionStatusFlags::OVP);
         flags.contains(ProtectionStatusFlags::OPP);
-        flags.contains(ProtectionStatusFlags::SCP);        
+        flags.contains(ProtectionStatusFlags::SCP);
     }
 }
